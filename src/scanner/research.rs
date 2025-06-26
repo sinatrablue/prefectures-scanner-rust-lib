@@ -20,10 +20,10 @@ pub async fn process_research(req_client: &Client, scan_results: &mut Vec<ScanRe
     }
 }
 
-async fn parse_for_cards_urls(page_content: &String) -> Vec<String> {
+pub async fn parse_for_cards_urls(page_content: &String) -> Vec<String> {
     vec![String::from(page_content)]
 }
 
-async fn process_scan_page(url: &String, _keyword: &&str) -> Option<ScanResult> {
-    Some(ScanResult::new(url.clone(), String::from("07/11/2018"), String::from("test")))
+pub async fn process_scan_page(url: &String, _keyword: &&str) -> Option<ScanResult> {
+    Some(ScanResult::new(url.clone(), String::from("07/11/2018"), String::from("jamais"), String::from("test")))
 }

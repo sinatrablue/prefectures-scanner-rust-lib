@@ -1,12 +1,13 @@
 // REQUEST FORMAT = https://www.oise.gouv.fr/contenu/recherche?SearchText=consultation
 
 mod utils;
-mod scanner;
+pub mod scanner;
 
 use crate::scanner::research::process_research;
 use crate::scanner::result::ScanResult;
 use crate::utils::set_panic_hook;
 use reqwest::Client;
+use serde_json::json;
 use wasm_bindgen::prelude::*;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
@@ -30,5 +31,5 @@ pub async fn scan_prefecture(base_url: &str, research_keywords: &str, keywords_t
         process_research(&req_client, &mut scan_results, &url, &keywords_to_scan_in_pages).await;
     }
 
-    String::from(base_url.to_owned() + "test")
+    json!(scan_results).to_string()
 }
