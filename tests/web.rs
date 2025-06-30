@@ -24,7 +24,8 @@ async fn test_scan() {
 #[wasm_bindgen_test]
 async fn test_cards_urls_scan() {
     let search_page_content = reqwest::get("https://www.oise.gouv.fr/contenu/recherche?SearchText=consultation").await.unwrap().text().await.unwrap();
-    let res = parse_for_cards_urls(&search_page_content).await;
+    let cards_list_content = get_cards_list_from_page_content(&search_page_content);
+    let res = parse_for_cards_urls(&cards_list_content, &"https://www.oise.gouv.fr").await;
     assert_eq!(res.len(), 10);
 }
 */

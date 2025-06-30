@@ -28,7 +28,7 @@ pub async fn scan_prefecture(base_url: &str, research_keywords: &str, keywords_t
 
     for research_keyword in research_keywords {
         let url = String::from(base_url.to_owned() + "/contenu/recherche?SearchText=" + research_keyword);
-        process_research(&req_client, &mut scan_results, &url, &keywords_to_scan_in_pages).await;
+        process_research(&req_client, &mut scan_results, &base_url, &url, &keywords_to_scan_in_pages).await;
     }
 
     json!(scan_results).to_string()
