@@ -1,0 +1,16 @@
+pub const DATES_EXPRESSIONS: [&str; 14] = [
+    r"\d|\d{2} j|Janvier",
+    r"\d|\d{2} f|Février",
+    r"\d|\d{2} m|Mars",
+    r"\d|\d{2} a|Avril",
+    r"\d|\d{2} m|Mai",
+    r"\d|\d{2} j|Juin",
+    r"\d|\d{2} j|Juillet",
+    r"\d|\d{2} a|Août",
+    r"\d|\d{2} s|Septembre",
+    r"\d|\d{2} o|Octobre",
+    r"\d|\d{2} n|Novembre",
+    r"\d|\d{2} d|Décembre",
+    r"\d{2}/\d{2}/\d{4}",
+    r"\d{2}/\d{2}",
+];
