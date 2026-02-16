@@ -4,7 +4,7 @@ mod utils;
 pub mod scanner;
 
 use crate::scanner::research::process_research;
-use crate::scanner::result::ScanResult;
+use crate::scanner::result::{ParsingResult, ScanResult};
 use crate::utils::set_panic_hook;
 use reqwest::Client;
 use serde_json::json;
@@ -22,14 +22,15 @@ pub async fn scan_prefecture(base_url: &str, research_keywords: &str, keywords_t
 
     let req_client = Client::new();
 
-    let mut scan_results: Vec<ScanResult> = vec![];
+    let mut parsing_results: Vec<ParsingResult> = vec![];
     let research_keywords: Vec<&str> = research_keywords.split(",").collect();
     let keywords_to_scan_in_pages: Vec<&str> = keywords_to_scan_in_pages.split(",").collect();
 
     for research_keyword in research_keywords {
         let url = String::from(base_url.to_owned() + "/contenu/recherche?SearchText=" + research_keyword);
-        process_research(&req_client, &mut scan_results, &base_url, &url, &keywords_to_scan_in_pages).await;
+        process_research(&req_client, &mut parsing_results, &base_url, &url, &keywords_to_scan_in_pages).await;
     }
 
+    let scan_results = ScanResult::new(String::from(base_url), parsing_results);
     json!(scan_results).to_string()
 }

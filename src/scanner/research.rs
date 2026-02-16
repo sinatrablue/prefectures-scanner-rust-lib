@@ -1,10 +1,10 @@
-use crate::scanner::{constants::DATES_EXPRESSIONS, result::ScanResult};
+use crate::scanner::{constants::DATES_EXPRESSIONS, result::ParsingResult};
 use regex::RegexSet;
 use reqwest::Client;
 
 pub async fn process_research(
     req_client: &Client,
-    scan_results: &mut Vec<ScanResult>,
+    scan_results: &mut Vec<ParsingResult>,
     base_url: &&str,
     url: &String,
     keywords_to_scan_in_pages: &Vec<&str>,
@@ -79,7 +79,7 @@ pub async fn process_scan_page(
     url: &String,
     page_content: &String,
     keyword: &&str,
-) -> Option<ScanResult> {
+) -> Option<ParsingResult> {
     let found_keyword_index = page_content.find(keyword);
     let quote: &str;
     match found_keyword_index {
@@ -122,7 +122,7 @@ pub async fn process_scan_page(
         ),
     };
 
-    Some(ScanResult::new(
+    Some(ParsingResult::new(
         url.clone(),
         start_date,
         end_date,
