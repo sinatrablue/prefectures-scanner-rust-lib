@@ -1,49 +1,47 @@
 use crate::scanner::{constants::DATES_EXPRESSIONS, result::ParsingResult};
 use regex::RegexSet;
-use reqwest::Client;
+use reqwest::{Client, Error};
 
 pub async fn process_research(
     req_client: &Client,
-    scan_results: &mut Vec<ParsingResult>,
+    already_found_results: &Vec<ParsingResult>,
     base_url: &&str,
     url: &String,
     keywords_to_scan_in_pages: &Vec<&str>,
-) {
+) -> Result<Vec<ParsingResult>, Error> {
     let search_page_content = req_client
         .get(url)
         .send()
-        .await
-        .unwrap()
+        .await?
         .text()
-        .await
-        .unwrap();
+        .await?;
     let cards_list_content = get_cards_list_from_page_content(&search_page_content);
 
     let cards_urls = parse_for_cards_urls(&cards_list_content, base_url).await;
+    let mut parsing_results: Vec<ParsingResult> = vec![];
     for url in cards_urls {
         let page_content = req_client
             .get(&url)
             .send()
-            .await
-            .unwrap()
+            .await?
             .text()
-            .await
-            .unwrap();
+            .await?;
         for keyword in keywords_to_scan_in_pages {
             let page_scan_result = process_scan_page(&url, &page_content, keyword).await;
             match page_scan_result {
                 Some(result) => {
-                    if !scan_results
+                    if !already_found_results
                         .iter()
-                        .any(|scan_result| scan_result.is_same_url(&result.url))
+                        .any(|parsing_result| parsing_result.is_same_url(&result.url))
                     {
-                        scan_results.push(result);
+                        parsing_results.push(result);
                     }
                 }
                 None => {}
             }
         }
     }
+    Ok(parsing_results)
 }
 
 pub fn get_cards_list_from_page_content(search_page_content: &String) -> &str {

@@ -1,3 +1,4 @@
+use crate::scanner::errors::ParsingError;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 
 pub struct ParsingResult {
@@ -36,11 +37,12 @@ impl Serialize for ParsingResult {
 pub struct ScanResult {
     pub url: String,
     pub results: Vec<ParsingResult>,
+    pub errors: Vec<ParsingError>,
 }
 
 impl ScanResult {
-    pub fn new(url: String, results: Vec<ParsingResult>) -> ScanResult {
-        ScanResult { url, results }
+    pub fn new(url: String, results: Vec<ParsingResult>, errors: Vec<ParsingError>) -> ScanResult {
+        ScanResult { url, results, errors }
     }
 }
 
@@ -49,9 +51,10 @@ impl Serialize for ScanResult {
     where
         S: Serializer,
     {
-        let mut state = serializer.serialize_struct("ScanResult", 2)?;
+        let mut state = serializer.serialize_struct("ScanResult", 3)?;
         state.serialize_field("url", &self.url)?;
         state.serialize_field("results", &self.results)?;
+        state.serialize_field("errors", &self.errors)?;
         state.end()
     }
 }
