@@ -20,7 +20,7 @@ impl Serialize for ParsingError {
     {
         let mut state = serializer.serialize_struct("ScanResult", 2)?;
         state.serialize_field("url", &self.url)?;
-        state.serialize_field("errors", &self.error.to_string())?;
+        state.serialize_field("errors", &self.error.url().unwrap().to_string())?;
         state.end()
     }
 }

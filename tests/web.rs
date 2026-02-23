@@ -12,11 +12,11 @@ wasm_bindgen_test_configure!(run_in_browser);
 
 #[wasm_bindgen_test]
 async fn test_scan() {
-    let url = "https://www.deux-sevres.gouv.fr";
+    let url = "https://www.oise.gouv.fr";
     let research_keywords = "[consultation]";
     let in_page_keywords = "[consultation]";
     let results = scan_prefecture(url, research_keywords, in_page_keywords).await;
-    assert_eq!(results.len(), 2);
+    assert_eq!(results, "test");
 }
 
 // #[wasm_bindgen_test]
