@@ -1,4 +1,4 @@
-fn parse_tag<'a>(content: &'a String, tag: &str) -> Option<&'a str> {
+pub fn parse_tag<'a>(content: &'a String, tag: &str) -> Option<&'a str> {
     let tag_start = format!("<{}", tag);
     let tag_start_index = content.find(tag_start.as_str())?;
 
