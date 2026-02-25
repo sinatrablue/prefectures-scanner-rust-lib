@@ -23,6 +23,15 @@ pub fn parse_attribute<'a>(content: &'a str, attr: &str) -> Option<&'a str> {
     Some(&content[attribute_content_start..attribute_content_closing])
 }
 
+pub fn parse_surrounding_tag<'a>(content: &'a str, found_index: &usize) -> Option<&'a str> {
+    let tag_start_closing_index = content[..*found_index].rfind(">")? + *found_index;
+    let tag_start_opening_index = content[..tag_start_closing_index].rfind("<")? + *found_index;
+    let tag = content[tag_start_opening_index..tag_start_closing_index];
+    let start_index = found_index + tag_start_opening_index;
+    let end_index = content[*found_index..].find("</")? + tag.len() + 1 + *found_index;
+    Some(&content[start_index..end_index])
+}
+
 #[cfg(test)]
 mod parser_tests {
     use super::*;
@@ -67,5 +76,13 @@ mod parser_tests {
         let href_content = "/Actions-de-l-Etat/Environnement/Nature-et-Biodiversite/Especes-et-habitats-proteges";
         let parsed_attribute = parse_attribute(SOME_A_TAG, "href").unwrap();
         assert_eq!(parsed_attribute, href_content);
+    }
+
+    #[test]
+    fn it_parses_the_surrounding_tag() {
+        let tag = "<p class=\"fr-card__desc\">, un premier avis sera formulé et la demande sera transmise pour avis consultatif au CNPN (Comité National de la Protection de la Nature) ou au CSRPN (...)</p>";
+        let found_index = SOME_HTML_CARD_BODY.find("fr-card__desc").unwrap();
+        let found_tag = parse_surrounding_tag(SOME_HTML_CARD_BODY, &found_index).unwrap();
+        assert_eq!(found_tag, tag);
     }
 }

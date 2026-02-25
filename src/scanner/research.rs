@@ -1,4 +1,4 @@
-use crate::scanner::parser::{parse_attribute, parse_tag_content};
+use crate::scanner::parser::{parse_attribute, parse_surrounding_tag, parse_tag_content};
 use crate::scanner::{constants::DATES_EXPRESSIONS, result::ParsingResult};
 use regex::RegexSet;
 use reqwest::{Client, Error};
@@ -17,7 +17,6 @@ pub async fn process_research(
         .text()
         .await?;
     let mut parsing_results: Vec<ParsingResult> = vec![];
-
     let main_content = parse_tag_content(&search_page_content, "main");
     match main_content {
         None => {}
@@ -27,7 +26,7 @@ pub async fn process_research(
             match cards_list_content {
                 None => {}
                 Some(cards_list_content) => {
-                    let cards_urls = parse_for_cards_urls(&cards_list_content, base_url).await;
+                    let cards_urls = search_for_cards_urls(&cards_list_content, base_url).await;
                     for url in cards_urls {
                         let page_content = req_client
                             .get(&url)
@@ -57,25 +56,17 @@ pub async fn process_research(
     Ok(parsing_results)
 }
 
-pub async fn parse_for_cards_urls(cards_list_content: &&str, base_url: &&str) -> Vec<String> {
+pub async fn search_for_cards_urls(cards_list_content: &&str, base_url: &&str) -> Vec<String> {
     let mut urls: Vec<String> = vec![];
-    // first, split the string between elements that encapsulate the href of cards
-    let parts_with_href = cards_list_content
-        .split("fr-card__title")
-        .collect::<Vec<&str>>()
-        .iter()
-        .flat_map(|part| part.split("</a>"))
-        .collect::<Vec<&str>>()
-        .into_iter()
-        .filter(|link| link.contains("fr-card__link"))
-        .collect::<Vec<&str>>();
-    for part_to_trim in parts_with_href {
-        let url = parse_attribute(part_to_trim, "href");
-        match url {
-            None => {}
-            Some(url) => {
-                urls.push((*base_url).to_owned() + url);
+    let mut content_to_parse = cards_list_content.clone();
+    while let Some(class_name_index) = content_to_parse.find("fr-card--horizontal") {
+        let a_tag = parse_surrounding_tag(&content_to_parse, &class_name_index);
+        if a_tag.is_some() {
+            let o_href = parse_attribute(&a_tag.unwrap(), "href");
+            if o_href.is_some() {
+                urls.push((*base_url).to_owned() + o_href.unwrap());
             }
+            content_to_parse = &content_to_parse[class_name_index + 10..]
         }
     }
     urls
