@@ -18,28 +18,35 @@ pub async fn process_research(
         .await?;
     let mut parsing_results: Vec<ParsingResult> = vec![];
 
-    let cards_list_content = parse_tag_content(&search_page_content, "ul");
-    match cards_list_content {
+    let main_content = parse_tag_content(&search_page_content, "main");
+    match main_content {
         None => {}
-        Some(cards_list_content) => {
-            let cards_urls = parse_for_cards_urls(&cards_list_content, base_url).await;
-            for url in cards_urls {
-                let page_content = req_client
-                    .get(&url)
-                    .send()
-                    .await?
-                    .text()
-                    .await?;
-                for keyword in keywords_to_scan_in_pages {
-                    let page_scan_result = process_scan_page(&url, &page_content, keyword).await;
-                    match page_scan_result {
-                        None => {}
-                        Some(result) => {
-                            if !already_found_results
-                                .iter()
-                                .any(|parsing_result| parsing_result.is_same_url(&result.url))
-                            {
-                                parsing_results.push(result);
+        Some(main_content) => {
+            let content = String::from(main_content);
+            let cards_list_content = parse_tag_content(&content, "ul");
+            match cards_list_content {
+                None => {}
+                Some(cards_list_content) => {
+                    let cards_urls = parse_for_cards_urls(&cards_list_content, base_url).await;
+                    for url in cards_urls {
+                        let page_content = req_client
+                            .get(&url)
+                            .send()
+                            .await?
+                            .text()
+                            .await?;
+                        for keyword in keywords_to_scan_in_pages {
+                            let page_scan_result = process_scan_page(&url, &page_content, keyword).await;
+                            match page_scan_result {
+                                None => {}
+                                Some(result) => {
+                                    if !already_found_results
+                                        .iter()
+                                        .any(|parsing_result| parsing_result.is_same_url(&result.url))
+                                    {
+                                        parsing_results.push(result);
+                                    }
+                                }
                             }
                         }
                     }
