@@ -58,7 +58,7 @@ pub async fn process_research(
 
 pub async fn search_for_cards_urls(cards_list_content: &&str, base_url: &&str) -> Vec<String> {
     let mut urls: Vec<String> = vec![];
-    let mut content_to_parse = cards_list_content.clone();
+    let mut content_to_parse = *cards_list_content;
     while let Some(class_name_index) = content_to_parse.find("fr-card--horizontal") {
         let a_tag = parse_surrounding_tag(&content_to_parse, &class_name_index);
         if a_tag.is_some() {

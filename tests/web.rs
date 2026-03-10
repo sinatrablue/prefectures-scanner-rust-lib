@@ -6,7 +6,7 @@ extern crate prefectures_scanner_rust_lib;
 extern crate wasm_bindgen_test;
 
 use prefectures_scanner_rust_lib::scanner::parser::parse_tag_content;
-use prefectures_scanner_rust_lib::scanner::research::parse_for_cards_urls;
+use prefectures_scanner_rust_lib::scanner::research::search_for_cards_urls;
 use wasm_bindgen_test::*;
 
 wasm_bindgen_test_configure!(run_in_browser);
@@ -27,7 +27,7 @@ async fn test_cards_urls_scan() {
     let content = String::from(main_content);
     let cards_list_content = parse_tag_content(&content, "ul").unwrap();
     assert_eq!(cards_list_content, "test");
-    let res = parse_for_cards_urls(&cards_list_content, &"https://www.oise.gouv.fr").await;
+    let res = search_for_cards_urls(&cards_list_content, &"https://www.oise.gouv.fr").await;
     assert_eq!(res.len(), 10);
 }
 

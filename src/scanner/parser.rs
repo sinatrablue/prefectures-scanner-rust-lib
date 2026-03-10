@@ -3,7 +3,8 @@ pub fn parse_tag<'a>(content: &'a String, tag: &str) -> Option<&'a str> {
     let tag_start_index = content.find(tag_start.as_str())?;
 
     let tag_end = format!("</{}>", tag);
-    let tag_end_index = tag_start_index + content[tag_start_index..].find(tag_end.as_str())? + tag_end.len();
+    let tag_end_index =
+        tag_start_index + content[tag_start_index..].find(tag_end.as_str())? + tag_end.len();
 
     Some(&content[tag_start_index..tag_end_index])
 }
@@ -19,17 +20,25 @@ pub fn parse_tag_content<'a>(content: &'a String, tag: &str) -> Option<&'a str> 
 pub fn parse_attribute<'a>(content: &'a str, attr: &str) -> Option<&'a str> {
     let attribute_index = content.find(attr)?;
     let attribute_content_start = attribute_index + attr.len() + 2; // +2 -> =" of attr="..."
-    let attribute_content_closing = attribute_content_start + content[attribute_content_start..].find("\"")?;
+    let attribute_content_closing =
+        attribute_content_start + content[attribute_content_start..].find("\"")?;
     Some(&content[attribute_content_start..attribute_content_closing])
 }
 
 pub fn parse_surrounding_tag<'a>(content: &'a str, found_index: &usize) -> Option<&'a str> {
-    let tag_start_closing_index = content[..*found_index].rfind(">")? + *found_index;
-    let tag_start_opening_index = content[..tag_start_closing_index].rfind("<")? + *found_index;
-    let tag = content[tag_start_opening_index..tag_start_closing_index];
-    let start_index = found_index + tag_start_opening_index;
-    let end_index = content[*found_index..].find("</")? + tag.len() + 1 + *found_index;
-    Some(&content[start_index..end_index])
+    let i = *found_index;
+    let tag_start_opening_index = content[..i].rfind("<")?;
+    let tag_name_end = match content[tag_start_opening_index..i].find(" ") {
+        Some(tag_name_end) => {
+            tag_name_end + tag_start_opening_index
+        }
+        None => {
+            content[tag_start_opening_index..i].find(">")? + tag_start_opening_index
+        }
+    };
+    let tag = &content[tag_start_opening_index + 1..tag_name_end];
+    let end_index = i + content[i..].find("</")? + tag.len() + 3; // 3 covers </> in </tag>
+    Some(&content[tag_start_opening_index..end_index])
 }
 
 #[cfg(test)]
@@ -54,7 +63,6 @@ mod parser_tests {
                                 Espèces et habitats protégés
                            </a>";
 
-
     #[test]
     fn it_parses_a_tag() {
         let content = SOME_HTML_CARD_BODY.to_string();
@@ -66,14 +74,18 @@ mod parser_tests {
     fn it_parses_a_tag_content() {
         let content = SOME_HTML_CARD_BODY.to_string();
         let parsed_tag_content = parse_tag_content(&content, "a").unwrap();
-        assert_eq!(parsed_tag_content, "
+        assert_eq!(
+            parsed_tag_content,
+            "
                                 Espèces et habitats protégés
-                           ")
+                           "
+        )
     }
 
     #[test]
     fn it_parses_an_attribute() {
-        let href_content = "/Actions-de-l-Etat/Environnement/Nature-et-Biodiversite/Especes-et-habitats-proteges";
+        let href_content =
+            "/Actions-de-l-Etat/Environnement/Nature-et-Biodiversite/Especes-et-habitats-proteges";
         let parsed_attribute = parse_attribute(SOME_A_TAG, "href").unwrap();
         assert_eq!(parsed_attribute, href_content);
     }
