@@ -1,6 +1,7 @@
-use crate::scanner::parser::{parse_attribute, parse_surrounding_tag, parse_tag_content};
-use crate::scanner::{constants::DATES_EXPRESSIONS, result::ParsingResult};
-use regex::RegexSet;
+use crate::scanner::parser::{
+    parse_attribute, parse_quote, parse_surrounding_tag, parse_tag_content,
+};
+use crate::scanner::result::ParsingResult;
 use reqwest::{Client, Error};
 
 pub async fn process_research(
@@ -10,43 +11,23 @@ pub async fn process_research(
     url: &String,
     keywords_to_scan_in_pages: &Vec<&str>,
 ) -> Result<Vec<ParsingResult>, Error> {
-    let search_page_content = req_client
-        .get(url)
-        .send()
-        .await?
-        .text()
-        .await?;
+    let search_page_content = req_client.get(url).send().await?.text().await?;
     let mut parsing_results: Vec<ParsingResult> = vec![];
     let main_content = parse_tag_content(&search_page_content, "main");
-    match main_content {
-        None => {}
-        Some(main_content) => {
-            let content = String::from(main_content);
-            let cards_list_content = parse_tag_content(&content, "ul");
-            match cards_list_content {
-                None => {}
-                Some(cards_list_content) => {
-                    let cards_urls = search_for_cards_urls(&cards_list_content, base_url).await;
-                    for url in cards_urls {
-                        let page_content = req_client
-                            .get(&url)
-                            .send()
-                            .await?
-                            .text()
-                            .await?;
-                        for keyword in keywords_to_scan_in_pages {
-                            let page_scan_result = process_scan_page(&url, &page_content, keyword).await;
-                            match page_scan_result {
-                                None => {}
-                                Some(result) => {
-                                    if !already_found_results
-                                        .iter()
-                                        .any(|parsing_result| parsing_result.is_same_url(&result.url))
-                                    {
-                                        parsing_results.push(result);
-                                    }
-                                }
-                            }
+    if main_content.is_some() {
+        let cards_urls = search_for_cards_urls(&main_content.unwrap(), base_url).await;
+        for url in cards_urls {
+            let page_content = req_client.get(&url).send().await?.text().await?;
+            for keyword in keywords_to_scan_in_pages {
+                let page_scan_result = process_scan_page(&url, &page_content, keyword).await;
+                match page_scan_result {
+                    None => {}
+                    Some(result) => {
+                        if !already_found_results
+                            .iter()
+                            .any(|parsing_result| parsing_result.is_same_url(&result.url))
+                        {
+                            parsing_results.push(result);
                         }
                     }
                 }
@@ -77,8 +58,9 @@ pub async fn process_scan_page(
     page_content: &String,
     keyword: &&str,
 ) -> Option<ParsingResult> {
-    let found_keyword_index = page_content.find(keyword)?;
-    let quote = &page_content[found_keyword_index - 20..found_keyword_index + 25];
+    let main_content = parse_tag_content(&page_content, "main")?;
+    let found_keyword_index = main_content.find(keyword)?;
+    let quote = parse_quote(main_content, &found_keyword_index);
 
     let title = parse_tag_content(page_content, "h1").unwrap_or("Titre non identifié");
 
@@ -95,17 +77,18 @@ pub async fn process_scan_page(
         start_date,
         end_date,
         title.to_owned(),
-        quote.to_string(),
+        quote,
     ))
 }
 
 fn parse_for_dates(page_content: &String) -> Option<(String, String)> {
-    let main_content = parse_tag_content(page_content, "main")?;
+    None
 
-    let set = RegexSet::new(&DATES_EXPRESSIONS).unwrap();
-    set.matches(main_content);
+    // let main_content = parse_tag_content(page_content, "main")?;
+    //
+    // let set = RegexSet::new(&DATES_EXPRESSIONS).unwrap();
+    // set.matches(main_content);
 
-    return None;
 
     // if dates.len() == 2 {
     //     Some((

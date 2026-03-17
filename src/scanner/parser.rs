@@ -14,7 +14,8 @@ pub fn parse_tag_content<'a>(content: &'a String, tag: &str) -> Option<&'a str> 
     let tag_start_closing = parsed_tag.find('>')? + 1; // +1 -> ">" of <tag ... >
     let tag_end = format!("</{}>", tag);
     let tag_end_index = parsed_tag.len() - tag_end.len();
-    Some(&parsed_tag[tag_start_closing..tag_end_index])
+    let res = &parsed_tag[tag_start_closing..tag_end_index];
+    Some(res.trim_matches(|c| c == ' ' || c == '\n'))
 }
 
 pub fn parse_attribute<'a>(content: &'a str, attr: &str) -> Option<&'a str> {
@@ -29,16 +30,44 @@ pub fn parse_surrounding_tag<'a>(content: &'a str, found_index: &usize) -> Optio
     let i = *found_index;
     let tag_start_opening_index = content[..i].rfind("<")?;
     let tag_name_end = match content[tag_start_opening_index..i].find(" ") {
-        Some(tag_name_end) => {
-            tag_name_end + tag_start_opening_index
-        }
-        None => {
-            content[tag_start_opening_index..i].find(">")? + tag_start_opening_index
-        }
+        Some(tag_name_end) => tag_name_end + tag_start_opening_index,
+        None => content[tag_start_opening_index..i].find(">")? + tag_start_opening_index,
     };
     let tag = &content[tag_start_opening_index + 1..tag_name_end];
     let end_index = i + content[i..].find("</")? + tag.len() + 3; // 3 covers </> in </tag>
     Some(&content[tag_start_opening_index..end_index])
+}
+
+pub fn parse_quote(content: &str, found_index: &usize) -> String {
+    let mut before_content = &content[..*found_index];
+    if let Some(found_tag_pattern) = before_content.rfind(">") {
+        before_content = &content[found_tag_pattern + 1..*found_index]; // exclude the found tag pattern
+    }
+    let mut before_chars = before_content.chars().collect::<Vec<_>>();
+
+    let mut after_content = &content[*found_index..];
+    if let Some(found_tag_pattern) = after_content.find("<") {
+        after_content = &content[*found_index..*found_index + found_tag_pattern];
+    }
+    let after_chars = after_content.chars().collect::<Vec<_>>();
+
+    let before_kept = if before_chars.len() > 40 {
+        before_chars.reverse();
+        let mut res = before_chars[0..40].to_vec();
+        res.reverse();
+        res
+    } else {
+        before_chars
+    };
+    let after_kept = if after_chars.len() > 50 {
+        after_chars[0..50].to_vec()
+    } else {
+        after_chars
+    };
+    [before_kept, after_kept]
+        .concat()
+        .iter()
+        .collect::<String>()
 }
 
 #[cfg(test)]
@@ -74,12 +103,7 @@ mod parser_tests {
     fn it_parses_a_tag_content() {
         let content = SOME_HTML_CARD_BODY.to_string();
         let parsed_tag_content = parse_tag_content(&content, "a").unwrap();
-        assert_eq!(
-            parsed_tag_content,
-            "
-                                Espèces et habitats protégés
-                           "
-        )
+        assert_eq!(parsed_tag_content, "Espèces et habitats protégés")
     }
 
     #[test]
@@ -96,5 +120,20 @@ mod parser_tests {
         let found_index = SOME_HTML_CARD_BODY.find("fr-card__desc").unwrap();
         let found_tag = parse_surrounding_tag(SOME_HTML_CARD_BODY, &found_index).unwrap();
         assert_eq!(found_tag, tag);
+    }
+
+    #[test]
+    fn it_parses_a_quote() {
+        let content = String::from("Un contenu avec le mot-clé que l'on recherche là ici c'est consultation donc on rajoute du texte et on met la fonction au défi d'extraire la quote");
+        let found_index = content.find("consultation").unwrap();
+        let quote = parse_quote(&content, &found_index);
+        assert_eq!(quote, "mot-clé que l'on recherche là ici c'est consultation donc on rajoute du texte et on met la");
+        let content = String::from("<p class=\"fr-card__desc\">La demande sera transmise pour avis consultatif au CNPN (Comité National)</p>");
+        let found_index = content.find("consult").unwrap();
+        let quote = parse_quote(&content, &found_index);
+        assert_eq!(
+            quote,
+            "La demande sera transmise pour avis consultatif au CNPN (Comité National)"
+        );
     }
 }
